@@ -27,13 +27,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!existing) return NextResponse.json({ error: '案件不存在' }, { status: 404 });
 
   const updateResult = await pool.request()
-    .input('id',       sql.Int,               parseInt(id, 10))
-    .input('user_id',  sql.Int,               CURRENT_USER_ID)
-    .input('customer', sql.NVarChar(300),     body.customer ?? existing.customer)
-    .input('amount',   sql.Decimal(18, 2),    body.amount   ?? existing.amount)
-    .input('notes',    sql.NVarChar(sql.MAX), body.notes    ?? existing.notes)
+    .input('id',             sql.Int,               parseInt(id, 10))
+    .input('user_id',        sql.Int,               CURRENT_USER_ID)
+    .input('customer',       sql.NVarChar(300),     body.customer        ?? existing.customer)
+    .input('contact_person', sql.NVarChar(200),     body.contact_person  ?? existing.contact_person)
+    .input('amount',         sql.Decimal(18, 2),    body.amount          ?? existing.amount)
+    .input('notes',          sql.NVarChar(sql.MAX), body.notes           ?? existing.notes)
     .query(`
-      UPDATE deals SET customer = @customer, amount = @amount, notes = @notes
+      UPDATE deals SET customer = @customer, contact_person = @contact_person, amount = @amount, notes = @notes
       OUTPUT INSERTED.*
       WHERE id = @id AND user_id = @user_id
     `);

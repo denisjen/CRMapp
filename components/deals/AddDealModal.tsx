@@ -19,6 +19,7 @@ interface Props {
 
 export function AddDealModal({ open, onClose, onCreated, defaultColumn = 'developing' }: Props) {
   const [customer, setCustomer] = useState('');
+  const [contactPerson, setContactPerson] = useState('');
   const [amount, setAmount] = useState('');
   const [columnId, setColumnId] = useState<ColumnId>(defaultColumn);
   const [saving, setSaving] = useState(false);
@@ -33,6 +34,7 @@ export function AddDealModal({ open, onClose, onCreated, defaultColumn = 'develo
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         customer: customer.trim(),
+        contact_person: contactPerson.trim(),
         amount: parseFloat(amount) || 0,
         column_id: columnId,
       }),
@@ -42,6 +44,7 @@ export function AddDealModal({ open, onClose, onCreated, defaultColumn = 'develo
       const deal: ApiDeal = await res.json();
       onCreated(deal);
       setCustomer('');
+      setContactPerson('');
       setAmount('');
       setColumnId('developing');
     }
@@ -64,6 +67,16 @@ export function AddDealModal({ open, onClose, onCreated, defaultColumn = 'develo
               onChange={e => setCustomer(e.target.value)}
               autoFocus
               required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="contact_person">聯絡人</Label>
+            <Input
+              id="contact_person"
+              placeholder="例：王小明、採購部陳經理"
+              value={contactPerson}
+              onChange={e => setContactPerson(e.target.value)}
             />
           </div>
 

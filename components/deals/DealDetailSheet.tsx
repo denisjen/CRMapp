@@ -24,6 +24,7 @@ export function DealDetailSheet({ deal, open, onClose, onUpdated, onDeleted }: P
   const [logs, setLogs] = useState<ContactLog[]>([]);
   const [editing, setEditing] = useState(false);
   const [customer, setCustomer] = useState(deal.customer);
+  const [contactPerson, setContactPerson] = useState(deal.contact_person);
   const [amount, setAmount] = useState(String(deal.amount));
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -31,13 +32,14 @@ export function DealDetailSheet({ deal, open, onClose, onUpdated, onDeleted }: P
   useEffect(() => {
     if (open) {
       setCustomer(deal.customer);
+      setContactPerson(deal.contact_person);
       setAmount(String(deal.amount));
       setEditing(false);
       fetch(`/api/logs/${deal.id}`)
         .then(r => r.json())
         .then(setLogs);
     }
-  }, [open, deal.id, deal.customer, deal.amount]);
+  }, [open, deal.id, deal.customer, deal.contact_person, deal.amount]);
 
   const columnLabel = COLUMNS.find(c => c.id === deal.column_id)?.label ?? deal.column_id;
 
@@ -47,7 +49,7 @@ export function DealDetailSheet({ deal, open, onClose, onUpdated, onDeleted }: P
     const res = await fetch(`/api/deals/${deal.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customer: customer.trim(), amount: parseFloat(amount) || 0 }),
+      body: JSON.stringify({ customer: customer.trim(), contact_person: contactPerson.trim(), amount: parseFloat(amount) || 0 }),
     });
     if (res.ok) {
       const updated: ApiDeal = await res.json();
@@ -129,24 +131,42 @@ export function DealDetailSheet({ deal, open, onClose, onUpdated, onDeleted }: P
             </div>
           </div>
 
-          {/* Amount */}
+          {/* Contact person + Amount */}
           {editing ? (
-            <div className="mt-2">
-              <Label className="text-xs text-zinc-500">預估金額（TWD）</Label>
-              <Input
-                type="number"
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                className="mt-1"
-                min={0}
-              />
+            <div className="mt-2 flex flex-col gap-2">
+              <div>
+                <Label className="text-xs text-zinc-500">聯絡人</Label>
+                <Input
+                  value={contactPerson}
+                  onChange={e => setContactPerson(e.target.value)}
+                  className="mt-1"
+                  placeholder="聯絡人姓名"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-zinc-500">預估金額（TWD）</Label>
+                <Input
+                  type="number"
+                  value={amount}
+                  onChange={e => setAmount(e.target.value)}
+                  className="mt-1"
+                  min={0}
+                />
+              </div>
             </div>
           ) : (
-            deal.amount > 0 && (
-              <p className="text-sm text-zinc-600 mt-1">
-                預估金額：<span className="font-semibold">${deal.amount.toLocaleString()}</span>
-              </p>
-            )
+            <div className="mt-1 flex flex-col gap-0.5">
+              {deal.contact_person && (
+                <p className="text-sm text-zinc-600">
+                  聯絡人：<span className="font-medium">{deal.contact_person}</span>
+                </p>
+              )}
+              {deal.amount > 0 && (
+                <p className="text-sm text-zinc-600">
+                  預估金額：<span className="font-semibold">${deal.amount.toLocaleString()}</span>
+                </p>
+              )}
+            </div>
           )}
         </SheetHeader>
 

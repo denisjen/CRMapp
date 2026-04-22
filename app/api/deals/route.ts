@@ -33,7 +33,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { customer, amount, column_id, notes } = await req.json();
+  const { customer, contact_person, amount, column_id, notes } = await req.json();
   if (!customer || !column_id) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 });
   }
@@ -46,16 +46,17 @@ export async function POST(req: NextRequest) {
   const position = (posResult.recordset[0].m as number) + 1000;
 
   const insertResult = await pool.request()
-    .input('user_id',   sql.Int,              CURRENT_USER_ID)
-    .input('customer',  sql.NVarChar(300),    customer)
-    .input('amount',    sql.Decimal(18, 2),   amount ?? 0)
-    .input('column_id', sql.NVarChar(20),     column_id)
-    .input('position',  sql.Int,              position)
-    .input('notes',     sql.NVarChar(sql.MAX), notes ?? '')
+    .input('user_id',        sql.Int,              CURRENT_USER_ID)
+    .input('customer',       sql.NVarChar(300),    customer)
+    .input('contact_person', sql.NVarChar(200),    contact_person ?? '')
+    .input('amount',         sql.Decimal(18, 2),   amount ?? 0)
+    .input('column_id',      sql.NVarChar(20),     column_id)
+    .input('position',       sql.Int,              position)
+    .input('notes',          sql.NVarChar(sql.MAX), notes ?? '')
     .query(`
-      INSERT INTO deals (user_id, customer, amount, column_id, position, notes)
+      INSERT INTO deals (user_id, customer, contact_person, amount, column_id, position, notes)
       OUTPUT INSERTED.*
-      VALUES (@user_id, @customer, @amount, @column_id, @position, @notes)
+      VALUES (@user_id, @customer, @contact_person, @amount, @column_id, @position, @notes)
     `);
 
   const deal = insertResult.recordset[0] as Deal;

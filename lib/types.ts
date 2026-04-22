@@ -27,6 +27,7 @@ export interface Deal {
   id: number;
   user_id: number;
   customer: string;
+  contact_person: string;
   amount: number;
   column_id: ColumnId;
   position: number;
