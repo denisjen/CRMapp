@@ -14,6 +14,14 @@ export default async function BoardPage() {
         <h1 className="text-lg font-bold text-zinc-900">業務追蹤</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-zinc-600">{session.name}</span>
+          {session.role === 'admin' && (
+            <a
+              href="/admin"
+              className="text-xs text-zinc-400 hover:text-zinc-700 px-2 py-1.5 rounded-lg hover:bg-zinc-100 transition-colors"
+            >
+              管理後台
+            </a>
+          )}
           <LogoutButton />
         </div>
       </header>
