@@ -13,11 +13,14 @@ export async function POST(req: NextRequest) {
   const pool = await getPool();
   const result = await pool.request()
     .input('email', sql.NVarChar(320), email.trim().toLowerCase())
-    .query('SELECT id, name, email, role, password_hash FROM users WHERE email = @email');
+    .query('SELECT id, dept_id, name, email, role, password_hash, is_active FROM users WHERE email = @email');
 
-  const user = result.recordset[0] as (User & { password_hash: string }) | undefined;
+  const user = result.recordset[0] as (User & { password_hash: string; is_active: boolean }) | undefined;
   if (!user || !user.password_hash) {
     return NextResponse.json({ error: '帳號或密碼錯誤' }, { status: 401 });
+  }
+  if (!user.is_active) {
+    return NextResponse.json({ error: '此帳號已停用，請聯絡管理員' }, { status: 403 });
   }
 
   const valid = await bcrypt.compare(password, user.password_hash);
@@ -27,6 +30,7 @@ export async function POST(req: NextRequest) {
 
   const session = await getSession();
   session.userId = user.id;
+  session.deptId = user.dept_id;
   session.name   = user.name;
   session.email  = user.email;
   session.role   = user.role;

@@ -4,6 +4,7 @@ import { UserRole } from './types';
 
 export interface SessionData {
   userId: number;
+  deptId: number;
   name: string;
   email: string;
   role: UserRole;
