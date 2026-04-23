@@ -14,7 +14,10 @@ function fmt(n: number): string {
 
 function relativeTime(iso: string): string {
   const date = new Date(iso.endsWith('Z') ? iso : iso + 'Z');
-  const days = Math.floor((Date.now() - date.getTime()) / 86_400_000);
+  const now  = new Date();
+  const todayMidnight = new Date(now.getFullYear(),  now.getMonth(),  now.getDate());
+  const dateMidnight  = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const days = Math.round((todayMidnight.getTime() - dateMidnight.getTime()) / 86_400_000);
   if (days === 0) return '今天';
   if (days === 1) return '昨天';
   if (days < 30)  return `${days}天前`;
