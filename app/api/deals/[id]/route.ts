@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool, sql } from '@/db/database';
 import { Deal, ApiDeal } from '@/lib/types';
 import { STALE_DAYS } from '@/lib/constants';
+import { getSession } from '@/lib/session';
 
-// TODO: replace with session.userId once auth is implemented
-const CURRENT_USER_ID = 1;
+async function requireUser() {
+  const session = await getSession();
+  if (!session.userId) return null;
+  return session.userId;
+}
 
 function computeStale(lastContactAt: Date | string) {
   const d = lastContactAt instanceof Date ? lastContactAt : new Date(lastContactAt);
@@ -15,20 +19,23 @@ function computeStale(lastContactAt: Date | string) {
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: NextRequest, { params }: Params) {
+  const userId = await requireUser();
+  if (!userId) return NextResponse.json({ error: '未登入' }, { status: 401 });
+
   const { id } = await params;
   const body = await req.json();
   const pool = await getPool();
 
   const existingResult = await pool.request()
     .input('id',      sql.Int, parseInt(id, 10))
-    .input('user_id', sql.Int, CURRENT_USER_ID)
+    .input('user_id', sql.Int, userId)
     .query('SELECT * FROM deals WHERE id = @id AND user_id = @user_id');
   const existing = existingResult.recordset[0] as Deal | undefined;
   if (!existing) return NextResponse.json({ error: '案件不存在' }, { status: 404 });
 
   const updateResult = await pool.request()
     .input('id',             sql.Int,               parseInt(id, 10))
-    .input('user_id',        sql.Int,               CURRENT_USER_ID)
+    .input('user_id',        sql.Int,               userId)
     .input('customer',       sql.NVarChar(300),     body.customer        ?? existing.customer)
     .input('contact_person', sql.NVarChar(200),     body.contact_person  ?? existing.contact_person)
     .input('amount',         sql.Decimal(18, 2),    body.amount          ?? existing.amount)
@@ -45,18 +52,21 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Params) {
+  const userId = await requireUser();
+  if (!userId) return NextResponse.json({ error: '未登入' }, { status: 401 });
+
   const { id } = await params;
   const pool = await getPool();
 
   const existing = await pool.request()
     .input('id',      sql.Int, parseInt(id, 10))
-    .input('user_id', sql.Int, CURRENT_USER_ID)
+    .input('user_id', sql.Int, userId)
     .query('SELECT id FROM deals WHERE id = @id AND user_id = @user_id');
   if (!existing.recordset[0]) return NextResponse.json({ error: '案件不存在' }, { status: 404 });
 
   await pool.request()
     .input('id',      sql.Int, parseInt(id, 10))
-    .input('user_id', sql.Int, CURRENT_USER_ID)
+    .input('user_id', sql.Int, userId)
     .query('DELETE FROM deals WHERE id = @id AND user_id = @user_id');
   return NextResponse.json({ success: true });
 }

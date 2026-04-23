@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPool, sql } from '@/db/database';
 import { ContactLog } from '@/lib/types';
-
-// TODO: replace with session.userId once auth is implemented
-const CURRENT_USER_ID = 1;
+import { getSession } from '@/lib/session';
 
 type Params = { params: Promise<{ dealId: string }> };
 
 export async function GET(_req: NextRequest, { params }: Params) {
+  const session = await getSession();
+  if (!session.userId) return NextResponse.json({ error: '未登入' }, { status: 401 });
+  const userId = session.userId;
+
   const { dealId } = await params;
   const pool = await getPool();
 
   const dealCheck = await pool.request()
     .input('deal_id', sql.Int, parseInt(dealId, 10))
-    .input('user_id', sql.Int, CURRENT_USER_ID)
+    .input('user_id', sql.Int, userId)
     .query('SELECT id FROM deals WHERE id = @deal_id AND user_id = @user_id');
   if (!dealCheck.recordset[0]) {
     return NextResponse.json({ error: '案件不存在' }, { status: 404 });

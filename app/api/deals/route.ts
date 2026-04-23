@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getPool, sql } from '@/db/database';
 import { Deal, ApiDeal, ColumnId } from '@/lib/types';
 import { STALE_DAYS } from '@/lib/constants';
+import { getSession } from '@/lib/session';
 
-// TODO: replace with session.userId once auth is implemented
-const CURRENT_USER_ID = 1;
+async function requireUser() {
+  const session = await getSession();
+  if (!session.userId) return null;
+  return session.userId;
+}
 
 function computeStale(lastContactAt: Date | string) {
   const d = lastContactAt instanceof Date ? lastContactAt : new Date(lastContactAt);
@@ -13,9 +17,12 @@ function computeStale(lastContactAt: Date | string) {
 }
 
 export async function GET() {
+  const userId = await requireUser();
+  if (!userId) return NextResponse.json({ error: '未登入' }, { status: 401 });
+
   const pool = await getPool();
   const result = await pool.request()
-    .input('user_id', sql.Int, CURRENT_USER_ID)
+    .input('user_id', sql.Int, userId)
     .query('SELECT * FROM deals WHERE user_id = @user_id ORDER BY column_id, position ASC');
 
   const deals = result.recordset as Deal[];
@@ -33,6 +40,9 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const userId = await requireUser();
+  if (!userId) return NextResponse.json({ error: '未登入' }, { status: 401 });
+
   const { customer, contact_person, amount, column_id, notes } = await req.json();
   if (!customer || !column_id) {
     return NextResponse.json({ error: '缺少必要欄位' }, { status: 400 });
@@ -40,13 +50,13 @@ export async function POST(req: NextRequest) {
 
   const pool = await getPool();
   const posResult = await pool.request()
-    .input('user_id',   sql.Int,          CURRENT_USER_ID)
+    .input('user_id',   sql.Int,          userId)
     .input('column_id', sql.NVarChar(20), column_id)
     .query('SELECT ISNULL(MAX(position), -1000) AS m FROM deals WHERE user_id = @user_id AND column_id = @column_id');
   const position = (posResult.recordset[0].m as number) + 1000;
 
   const insertResult = await pool.request()
-    .input('user_id',        sql.Int,              CURRENT_USER_ID)
+    .input('user_id',        sql.Int,              userId)
     .input('customer',       sql.NVarChar(300),    customer)
     .input('contact_person', sql.NVarChar(200),    contact_person ?? '')
     .input('amount',         sql.Decimal(18, 2),   amount ?? 0)

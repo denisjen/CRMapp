@@ -1,6 +1,7 @@
 // Run once: npm run seed
 // Safe to re-run — skips if data already exists.
 import sql from 'mssql';
+import bcrypt from 'bcryptjs';
 
 const config: sql.config = {
   server:   process.env.MSSQL_SERVER   ?? 'localhost',
@@ -36,6 +37,7 @@ async function seed() {
       .query('INSERT INTO departments (org_id, name) OUTPUT INSERTED.id VALUES (@org_id, @name)');
     const deptId: number = deptResult.recordset[0].id;
 
+    const defaultPassword = await bcrypt.hash('password123', 10);
     const users = [
       { name: '系統管理員', email: 'admin@company.com',   role: 'admin'   },
       { name: '業務主管',   email: 'manager@company.com', role: 'manager' },
@@ -45,19 +47,21 @@ async function seed() {
 
     for (const u of users) {
       await new sql.Request(tx)
-        .input('dept_id', sql.Int, deptId)
-        .input('name',    sql.NVarChar(200), u.name)
-        .input('email',   sql.NVarChar(320), u.email)
-        .input('role',    sql.NVarChar(10),  u.role)
-        .query('INSERT INTO users (dept_id, name, email, role) VALUES (@dept_id, @name, @email, @role)');
+        .input('dept_id',       sql.Int,          deptId)
+        .input('name',          sql.NVarChar(200), u.name)
+        .input('email',         sql.NVarChar(320), u.email)
+        .input('role',          sql.NVarChar(10),  u.role)
+        .input('password_hash', sql.NVarChar(200), defaultPassword)
+        .query('INSERT INTO users (dept_id, name, email, role, password_hash) VALUES (@dept_id, @name, @email, @role, @password_hash)');
     }
 
     await tx.commit();
     console.log('Seed 完成！');
-    console.log('  id=1 系統管理員 (admin)');
-    console.log('  id=2 業務主管   (manager)');
-    console.log('  id=3 業務A      (sales)');
-    console.log('  id=4 業務B      (sales)');
+    console.log('  id=1 系統管理員 admin@company.com   (admin)');
+    console.log('  id=2 業務主管   manager@company.com (manager)');
+    console.log('  id=3 業務A      salesA@company.com  (sales)');
+    console.log('  id=4 業務B      salesB@company.com  (sales)');
+    console.log('  預設密碼：password123');
   } catch (err) {
     await tx.rollback();
     throw err;
