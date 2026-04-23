@@ -18,16 +18,17 @@ function formatAmount(amount: number): string {
 function formatRelativeTime(isoString: string): string {
   const date = new Date(isoString.endsWith('Z') ? isoString : isoString + 'Z');
   const now  = new Date();
-  // Compare local-timezone calendar dates, not raw elapsed milliseconds.
-  // Using getFullYear/Month/Date gives the date in the user's local timezone.
   const todayMidnight = new Date(now.getFullYear(),  now.getMonth(),  now.getDate());
   const dateMidnight  = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.round((todayMidnight.getTime() - dateMidnight.getTime()) / 86_400_000);
-  if (diffDays === 0) return '今天';
-  if (diffDays === 1) return '昨天';
-  if (diffDays < 30)  return `${diffDays}天前`;
-  const diffMonths = Math.floor(diffDays / 30);
-  return `${diffMonths}個月前`;
+
+  const dateStr = date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
+  const fullStr = date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' });
+
+  if (diffDays === 0) return `今天 ${dateStr}`;
+  if (diffDays === 1) return `昨天 ${dateStr}`;
+  if (diffDays < 30)  return `${diffDays}天前 ${dateStr}`;
+  return fullStr;
 }
 
 export function DealCard({ deal, index, onTap }: Props) {

@@ -18,10 +18,14 @@ function relativeTime(iso: string): string {
   const todayMidnight = new Date(now.getFullYear(),  now.getMonth(),  now.getDate());
   const dateMidnight  = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const days = Math.round((todayMidnight.getTime() - dateMidnight.getTime()) / 86_400_000);
-  if (days === 0) return '今天';
-  if (days === 1) return '昨天';
-  if (days < 30)  return `${days}天前`;
-  return `${Math.floor(days / 30)}個月前`;
+
+  const dateStr = date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' });
+  const fullStr = date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'numeric', day: 'numeric' });
+
+  if (days === 0) return `今天 ${dateStr}`;
+  if (days === 1) return `昨天 ${dateStr}`;
+  if (days < 30)  return `${days}天前 ${dateStr}`;
+  return fullStr;
 }
 
 interface Props { deals: ManagerDeal[]; }
