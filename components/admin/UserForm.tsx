@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { AdminUser } from './UsersPanel';
 
-interface Dept { id: number; name: string; org_name: string; }
+interface Dept { id: number; name: string; org_name: string; depth: number; sort_path: string; }
 
 interface Props {
   open: boolean;
@@ -116,11 +116,13 @@ export function UserForm({ open, user, onClose, onSaved }: Props) {
             </div>
           </Field>
 
-          <Field label="部門 *">
+          <Field label="所屬單位 *">
             <select value={deptId} onChange={e => setDeptId(e.target.value)} className={inputCls} required>
-              <option value="">請選擇部門</option>
+              <option value="">請選擇單位</option>
               {depts.map(d => (
-                <option key={d.id} value={d.id}>{d.org_name} — {d.name}</option>
+                <option key={d.id} value={d.id}>
+                  {'　'.repeat(d.depth)}{d.depth > 0 ? '└ ' : ''}{d.name}
+                </option>
               ))}
             </select>
           </Field>

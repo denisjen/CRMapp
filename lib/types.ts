@@ -10,8 +10,18 @@ export interface Organization {
 export interface Department {
   id: number;
   org_id: number;
+  parent_id: number | null;
+  level_name: string;
   name: string;
   created_at: string;
+}
+
+/** Department enriched with tree info (returned by admin/manager APIs) */
+export interface DeptNode extends Department {
+  org_name: string;
+  depth: number;
+  /** slash-separated path from root, e.g. "業務部/北區課/第一組" */
+  sort_path: string;
 }
 
 export interface User {

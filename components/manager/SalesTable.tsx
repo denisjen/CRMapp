@@ -20,12 +20,13 @@ export function SalesTable({ stats, members, selectedUserId, onSelectUser }: Pro
     return <p className="text-sm text-zinc-400 text-center py-6">此期間無資料</p>;
   }
 
-  // Show all members, even those with no deals
+  // Merge members with no deals into stats
   const memberMap = new Map(stats.map(s => [s.user_id, s]));
-  const rows = members.map(m => ({
+  const allRows = members.map(m => ({
     member: m,
     stat: memberMap.get(m.id) ?? {
       user_id: m.id, user_name: m.name,
+      dept_id: m.dept_id, dept_name: m.dept_name, dept_path: m.dept_name,
       developing_count: 0, developing_amount: 0,
       quoting_count: 0,    quoting_amount: 0,
       closed_count: 0,     closed_amount: 0,
@@ -33,74 +34,91 @@ export function SalesTable({ stats, members, selectedUserId, onSelectUser }: Pro
     } as SalesStats,
   }));
 
+  // Group by dept_path
+  const groups = new Map<string, typeof allRows>();
+  for (const row of allRows) {
+    const path = row.stat.dept_path ?? row.stat.dept_name;
+    if (!groups.has(path)) groups.set(path, []);
+    groups.get(path)!.push(row);
+  }
+
+  const showDeptGroup = groups.size > 1;
+
+  // Grand totals
+  const totals = {
+    developing: stats.reduce((s, r) => s + Number(r.developing_amount), 0),
+    quoting:    stats.reduce((s, r) => s + Number(r.quoting_amount),    0),
+    closed:     stats.reduce((s, r) => s + Number(r.closed_amount),     0),
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-zinc-200 overflow-hidden">
-      {/* Header */}
-      <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 text-xs text-zinc-400 font-medium border-b border-zinc-100 px-4 py-2.5">
+      {/* Column header */}
+      <div className="grid grid-cols-[1fr_auto_auto_auto] text-xs text-zinc-400 font-medium border-b border-zinc-100 px-4 py-2.5">
         <span>業務員</span>
         <span className="w-16 text-right">開發中</span>
         <span className="w-16 text-right">報價中</span>
         <span className="w-20 text-right text-emerald-600">已成交</span>
       </div>
 
-      {/* Rows */}
-      {rows.map(({ member, stat }) => {
-        const isSelected = selectedUserId === member.id;
-        return (
-          <button
-            key={member.id}
-            onClick={() => onSelectUser(isSelected ? null : member.id)}
-            className={`w-full grid grid-cols-[1fr_auto_auto_auto] gap-0 px-4 py-3 text-left border-b border-zinc-50 last:border-0 transition-colors ${
-              isSelected ? 'bg-zinc-900 text-white' : 'hover:bg-zinc-50'
-            }`}
-          >
-            <div className="flex flex-col">
-              <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
-                {member.name}
-              </span>
-              {Number(stat.stale_count) > 0 && (
-                <span className={`text-xs mt-0.5 ${isSelected ? 'text-red-300' : 'text-red-500'}`}>
-                  ⚠ {stat.stale_count} 件逾期
-                </span>
-              )}
+      {Array.from(groups.entries()).map(([deptPath, rows]) => (
+        <div key={deptPath}>
+          {showDeptGroup && (
+            <div className="px-4 py-1.5 bg-zinc-50 border-b border-zinc-100">
+              <span className="text-xs font-semibold text-zinc-500">{deptPath}</span>
             </div>
-            <div className="w-16 text-right">
-              <p className={`text-sm font-medium ${isSelected ? 'text-zinc-300' : 'text-zinc-600'}`}>
-                {fmt(Number(stat.developing_amount))}
-              </p>
-              <p className={`text-xs ${isSelected ? 'text-zinc-400' : 'text-zinc-400'}`}>
-                {stat.developing_count} 件
-              </p>
-            </div>
-            <div className="w-16 text-right">
-              <p className={`text-sm font-medium ${isSelected ? 'text-blue-300' : 'text-blue-600'}`}>
-                {fmt(Number(stat.quoting_amount))}
-              </p>
-              <p className="text-xs text-zinc-400">{stat.quoting_count} 件</p>
-            </div>
-            <div className="w-20 text-right">
-              <p className={`text-sm font-bold ${isSelected ? 'text-emerald-300' : 'text-emerald-600'}`}>
-                {fmt(Number(stat.closed_amount))}
-              </p>
-              <p className="text-xs text-zinc-400">{stat.closed_count} 件</p>
-            </div>
-          </button>
-        );
-      })}
+          )}
+          {rows.map(({ member, stat }) => {
+            const isSelected = selectedUserId === member.id;
+            return (
+              <button
+                key={member.id}
+                onClick={() => onSelectUser(isSelected ? null : member.id)}
+                className={`w-full grid grid-cols-[1fr_auto_auto_auto] px-4 py-3 text-left border-b border-zinc-50 last:border-0 transition-colors ${
+                  isSelected ? 'bg-zinc-900 text-white' : 'hover:bg-zinc-50'
+                }`}
+              >
+                <div className="flex flex-col">
+                  <span className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-zinc-900'}`}>
+                    {member.name}
+                  </span>
+                  {Number(stat.stale_count) > 0 && (
+                    <span className={`text-xs mt-0.5 ${isSelected ? 'text-red-300' : 'text-red-500'}`}>
+                      ⚠ {stat.stale_count} 件逾期
+                    </span>
+                  )}
+                </div>
+                <div className="w-16 text-right">
+                  <p className={`text-sm font-medium ${isSelected ? 'text-zinc-300' : 'text-zinc-600'}`}>
+                    {fmt(Number(stat.developing_amount))}
+                  </p>
+                  <p className="text-xs text-zinc-400">{stat.developing_count} 件</p>
+                </div>
+                <div className="w-16 text-right">
+                  <p className={`text-sm font-medium ${isSelected ? 'text-blue-300' : 'text-blue-600'}`}>
+                    {fmt(Number(stat.quoting_amount))}
+                  </p>
+                  <p className="text-xs text-zinc-400">{stat.quoting_count} 件</p>
+                </div>
+                <div className="w-20 text-right">
+                  <p className={`text-sm font-bold ${isSelected ? 'text-emerald-300' : 'text-emerald-600'}`}>
+                    {fmt(Number(stat.closed_amount))}
+                  </p>
+                  <p className="text-xs text-zinc-400">{stat.closed_count} 件</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ))}
 
-      {/* Footer total */}
-      {rows.length > 1 && (
-        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 px-4 py-2.5 bg-zinc-50 border-t border-zinc-200 text-xs font-semibold text-zinc-500">
+      {/* Grand total footer */}
+      {allRows.length > 1 && (
+        <div className="grid grid-cols-[1fr_auto_auto_auto] px-4 py-2.5 bg-zinc-50 border-t border-zinc-200 text-xs font-semibold text-zinc-500">
           <span>合計</span>
-          <span className="w-16 text-right text-zinc-700">
-            {fmt(stats.reduce((s, r) => s + Number(r.developing_amount), 0))}
-          </span>
-          <span className="w-16 text-right text-blue-600">
-            {fmt(stats.reduce((s, r) => s + Number(r.quoting_amount), 0))}
-          </span>
-          <span className="w-20 text-right text-emerald-600">
-            {fmt(stats.reduce((s, r) => s + Number(r.closed_amount), 0))}
-          </span>
+          <span className="w-16 text-right text-zinc-700">{fmt(totals.developing)}</span>
+          <span className="w-16 text-right text-blue-600">{fmt(totals.quoting)}</span>
+          <span className="w-20 text-right text-emerald-600">{fmt(totals.closed)}</span>
         </div>
       )}
     </div>

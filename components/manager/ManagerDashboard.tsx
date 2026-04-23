@@ -7,7 +7,7 @@ import { SalesTable } from './SalesTable';
 import { DealList } from './DealList';
 import type { SalesStats } from '@/app/api/manager/stats/route';
 
-export interface Member { id: number; name: string; role: string; dept_name: string; org_name: string; }
+export interface Member { id: number; name: string; role: string; dept_id: number; dept_name: string; org_name: string; }
 export interface ManagerDeal {
   id: number; user_id: number; user_name: string;
   customer: string; contact_person: string; amount: number;
