@@ -54,9 +54,10 @@ export async function GET(req: NextRequest) {
   }
 
   // Also build a dept-path CTE (separate from scope CTE to avoid conflict)
+  const deptPathJoin = ctePrefix ? ', DeptPath AS (' : 'WITH DeptPath AS (';
   const query = `
     ${ctePrefix}
-    , DeptPath AS (
+    ${deptPathJoin}
       SELECT id, name, parent_id, CAST(name AS NVARCHAR(MAX)) AS path
       FROM departments WHERE parent_id IS NULL
       UNION ALL
